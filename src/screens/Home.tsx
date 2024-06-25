@@ -1,7 +1,7 @@
-import React from 'react'
-import { ScrollView, View, StatusBar, StyleSheet } from 'react-native'
-import type { MovieListProps } from '../types/app'
-import MovieList from '../components/movies/MovieList'
+import React from 'react';
+import { ScrollView, View, StatusBar, StyleSheet } from 'react-native';
+import type { MovieListProps } from '../types/app';
+import MovieList from '../components/movies/MovieList';
 
 const movieLists: MovieListProps[] = [
   {
@@ -24,7 +24,7 @@ const movieLists: MovieListProps[] = [
     path: 'movie/popular?language=en-US&page=1',
     coverType: 'poster',
   },
-]
+];
 
 const Home = (): JSX.Element => {
   return (
@@ -41,8 +41,8 @@ const Home = (): JSX.Element => {
         <StatusBar translucent={false} />
       </View>
     </ScrollView>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -51,6 +51,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     rowGap: 16,
   },
-})
+});
 
-export default Home
+export default Home;
