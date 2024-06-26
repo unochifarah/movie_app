@@ -1,25 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ImageBackground, ScrollView, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { API_ACCESS_TOKEN } from '@env';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome } from '@expo/vector-icons';
-import MovieList from '../components/movies/MovieList';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { Movie } from '../types/app';
+import MovieItem from '../components/movies/MovieItem';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const MovieDetails = () => {
+const MovieDetail = ({ route }: any): JSX.Element => {
+  const { id, coverType } = route.params;
   const [movie, setMovie] = useState<Movie | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const route = useRoute();
-  const { id } = route.params;
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [recommendations, setRecommendations] = useState<Movie[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>('');
 
   useEffect(() => {
-    fetchMovieDetails();
+    fetchMovieDetail();
     checkIfFavorite();
   }, [id]);
 
-  const fetchMovieDetails = async () => {
-    const url = `https://api.themoviedb.org/3/movie/${id}`;
+  const fetchMovieDetail = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const movieData = await fetchFromApi(`https://api.themoviedb.org/3/movie/${id}`);
+      setMovie(movieData);
+      const recommendationData = await fetchFromApi(`https://api.themoviedb.org/3/movie/${id}/recommendations`);
+      setRecommendations(recommendationData.results);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(`Failed to fetch data: ${err.message}`);
+        console.error('Error fetching movie detail:', err.message);
+      } else {
+        setError('An unknown error occurred');
+        console.error('An unknown error occurred while fetching movie detail:', err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFromApi = async (url: string): Promise<any> => {
     const options = {
       method: 'GET',
       headers: {
@@ -28,130 +50,234 @@ const MovieDetails = () => {
       },
     };
 
-    try {
-      const response = await fetch(url, options);
-      const data = await response.json();
-      setMovie(data);
-    } catch (error) {
-      console.error(error);
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
     }
-  };
-
-  const checkIfFavorite = async () => {
-    try {
-      const initialData: string | null = await AsyncStorage.getItem('@FavoriteList');
-      if (initialData !== null) {
-        const favMovieList: Movie[] = JSON.parse(initialData);
-        const isFav = favMovieList.some((favMovie) => favMovie.id === id);
-        setIsFavorite(isFav);
-      }
-    } catch (error) {
-      console.log(error);
-    }
+    return response.json();
   };
 
   const addFavorite = async (movie: Movie): Promise<void> => {
     try {
       const initialData: string | null = await AsyncStorage.getItem('@FavoriteList');
-      let favMovieList: Movie[] = [];
-
-      if (initialData !== null) {
-        favMovieList = [...JSON.parse(initialData), movie];
-      } else {
-        favMovieList = [movie];
-      }
-
+      let favMovieList: Movie[] = initialData ? JSON.parse(initialData) : [];
+      favMovieList = [...favMovieList, movie];
       await AsyncStorage.setItem('@FavoriteList', JSON.stringify(favMovieList));
       setIsFavorite(true);
     } catch (error) {
-      console.log(error);
+      console.error('Error adding to favorites:', error);
     }
   };
 
-  const removeFavorite = async (movieId: number): Promise<void> => {
+  const removeFavorite = async (id: number): Promise<void> => {
     try {
       const initialData: string | null = await AsyncStorage.getItem('@FavoriteList');
-      if (initialData !== null) {
-        const favMovieList: Movie[] = JSON.parse(initialData);
-        const updatedFavMovieList = favMovieList.filter((favMovie) => favMovie.id !== movieId);
-        await AsyncStorage.setItem('@FavoriteList', JSON.stringify(updatedFavMovieList));
-        setIsFavorite(false);
-      }
+      let favMovieList: Movie[] = initialData ? JSON.parse(initialData) : [];
+      favMovieList = favMovieList.filter((movie) => movie.id !== id);
+      await AsyncStorage.setItem('@FavoriteList', JSON.stringify(favMovieList));
+      setIsFavorite(false);
     } catch (error) {
-      console.log(error);
+      console.error('Error removing from favorites:', error);
     }
   };
 
-  const toggleFavorite = () => {
-    if (isFavorite) {
-      removeFavorite(movie.id);
-    } else {
-      addFavorite(movie);
+  const checkIfFavorite = async (): Promise<void> => {
+    try {
+      const initialData: string | null = await AsyncStorage.getItem('@FavoriteList');
+      const favMovieList: Movie[] = initialData ? JSON.parse(initialData) : [];
+      const isFav = favMovieList.some((movie) => movie.id === id);
+      setIsFavorite(isFav);
+    } catch (error) {
+      console.error('Error checking favorites:', error);
     }
   };
 
-  if (!movie) {
+  const toggleFavorite = (): void => {
+    if (movie) {
+      if (isFavorite) {
+        removeFavorite(movie.id);
+      } else {
+        addFavorite(movie);
+      }
+    }
+  };
+
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>{error}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Image
-        style={styles.coverImage}
-        source={{ uri: `https://image.tmdb.org/t/p/w500${movie.backdrop_path}` }}
-      />
-      <View style={styles.header}>
-        <Text style={styles.title}>{movie.title}</Text>
-        <TouchableOpacity onPress={toggleFavorite}>
-          <FontAwesome
-            name={isFavorite ? 'heart' : 'heart-o'}
-            size={30}
-            color={isFavorite ? 'red' : 'black'}
-          />
-        </TouchableOpacity>
+    <ScrollView contentContainerStyle={styles.container}>
+      <ImageBackground
+        resizeMode="cover"
+        style={styles.backgroundImage}
+        source={{
+          uri: `https://image.tmdb.org/t/p/w500${coverType === 'backdrop' ? movie?.backdrop_path : movie?.poster_path}`,
+        }}
+      >
+        <LinearGradient
+          colors={['#00000000', 'rgba(0, 0, 0, 0.7)']}
+          locations={[0.6, 0.8]}
+          style={styles.gradientStyle}
+        >
+          <Text style={styles.movieTitle}>{movie?.title}</Text>
+          <View style={styles.ratingFavoriteContainer}>
+            <View style={styles.ratingContainer}>
+              <FontAwesome name="star" size={16} color="yellow" />
+              <Text style={styles.rating}>{movie?.vote_average.toFixed(1)}</Text>
+            </View>
+            <TouchableOpacity onPress={toggleFavorite}>
+              <FontAwesome name={isFavorite ? "heart" : "heart-o"} size={24} color="pink" />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </ImageBackground>
+      <View style={styles.detailContainer}>
+        <Text style={styles.overview}>{movie?.overview}</Text>
+        <View style={styles.gridContainer}>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridTitle}>Original Language</Text>
+            <Text style={styles.gridValue}>{movie?.original_language}</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridTitle}>Popularity</Text>
+            <Text style={styles.gridValue}>{movie?.popularity.toFixed(2)}</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridTitle}>Release Date</Text>
+            <Text style={styles.gridValue}>
+            {movie?.release_date ? new Date(movie.release_date).toDateString() : 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridTitle}>Vote Count</Text>
+            <Text style={styles.gridValue}>{movie?.vote_count}</Text>
+          </View>
+        </View>
       </View>
-      <Text style={styles.overview}>{movie.overview}</Text>
-      {/* Movie Recommendations */}
-      <MovieList title="Recommendations" path={`movie/${id}/recommendations`} coverType="poster" />
+      <View style={styles.recommendationsContainer}>
+        <View style={styles.recommendationHeader}>
+          <View style={styles.purpleLabel}></View>
+          <Text style={styles.recommendationsTitle}>Recommendations</Text>
+        </View>
+        <FlatList
+          horizontal
+          data={recommendations}
+          renderItem={({ item }) => (
+            <MovieItem
+              movie={item}
+              size={{ width: 100, height: 160 }}
+              coverType="poster"
+            />
+          )}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  coverImage: {
+  backgroundImage: {
     width: '100%',
     height: 300,
-    borderRadius: 8,
-    marginBottom: 16,
   },
-  header: {
+  movieTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    paddingLeft: 8,
+  },
+  gradientStyle: {
+    padding: 8,
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  ratingFavoriteContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginRight: 8,
     marginBottom: 8,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingLeft: 8,
+  },
+  rating: {
+    color: 'yellow',
+    fontWeight: '700',
+  },
+  detailContainer: {
+    padding: 16,
+    width: '100%',
   },
   overview: {
     fontSize: 16,
+    marginVertical: 8,
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  gridItem: {
+    width: '48%',
     marginBottom: 16,
+  },
+  gridTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  gridValue: {
+    fontSize: 14,
+  },
+  recommendationsContainer: {
+    width: '100%',
+    paddingLeft: 16,
+    marginBottom: 16,
+  },
+  recommendationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  purpleLabel: {
+    width: 20,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#8978A4',
+    marginRight: 12,
+  },
+  recommendationsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
-export default MovieDetails;
+export default MovieDetail;

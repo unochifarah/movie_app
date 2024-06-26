@@ -26,16 +26,16 @@ const movieLists: MovieListProps[] = [
   },
 ];
 
-const Home = (): JSX.Element => {
+const HomeScreen = (): JSX.Element => {
   return (
     <ScrollView>
       <View style={styles.container}>
-        {movieLists.map((movieList) => (
+        {movieLists.map((movieList, index) => (
           <MovieList
             title={movieList.title}
             path={movieList.path}
             coverType={movieList.coverType}
-            key={movieList.title}
+            key={index}
           />
         ))}
         <StatusBar translucent={false} />
@@ -53,4 +53,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Home;
+export default HomeScreen;

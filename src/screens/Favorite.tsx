@@ -1,44 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StatusBar, StyleSheet, FlatList, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MovieItem from '../components/movies/MovieItem';
 import type { Movie } from '../types/app';
+import { useIsFocused } from '@react-navigation/native';
 
-const Favorite = () => {
+const Favorite = (): JSX.Element => {
   const [favoriteMovies, setFavoriteMovies] = useState<Movie[]>([]);
+  const { width } = Dimensions.get('window');
+  const isFocused = useIsFocused();
 
   useEffect(() => {
-    getFavoriteMovies();
-  }, []);
+    if (isFocused) {
+      fetchFavoriteMovies();
+    }
+  }, [isFocused]);
 
-  const getFavoriteMovies = async () => {
+  const fetchFavoriteMovies = async (): Promise<void> => {
     try {
-      const data = await AsyncStorage.getItem('@FavoriteList');
-      if (data !== null) {
-        setFavoriteMovies(JSON.parse(data));
+      const favoriteMoviesData: string | null = await AsyncStorage.getItem('@FavoriteList');
+      if (favoriteMoviesData) {
+        const favoriteMoviesList: Movie[] = JSON.parse(favoriteMoviesData);
+        setFavoriteMovies(favoriteMoviesList);
       }
     } catch (error) {
       console.log(error);
+      Alert.alert('Error', 'Failed to load favorite movies.');
     }
   };
 
-  if (favoriteMovies.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No favorite movies found.</Text>
-      </View>
-    );
-  }
+  const renderSeparator = (): JSX.Element => {
+    return <View style={styles.separator} />;
+  };
 
   return (
     <View style={styles.container}>
       <FlatList
         data={favoriteMovies}
         renderItem={({ item }) => (
-          <MovieItem movie={item} size={{ width: 100, height: 160 }} coverType="poster" />
+          <TouchableOpacity style={styles.itemContainer}>
+            <MovieItem
+              movie={item}
+              size={{ width: width / 3 - 32, height: (width / 3 - 32) * 1.5 }}
+              coverType="poster"
+            />
+          </TouchableOpacity>
         )}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={styles.listContainer}
+        numColumns={3}
+        ItemSeparatorComponent={renderSeparator}
       />
     </View>
   );
@@ -46,21 +57,19 @@ const Favorite = () => {
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: StatusBar.currentHeight ?? 32,
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: 16,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#555',
-  },
-  listContent: {
+  listContainer: {
     paddingBottom: 16,
+    justifyContent: 'space-between',
+  },
+  itemContainer: {
+    padding: 8,
+  },
+  separator: {
+    height: 8,
   },
 });
 

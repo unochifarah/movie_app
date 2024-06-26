@@ -1,17 +1,25 @@
-import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Home from '../screens/Home';
-import MovieDetail from '../screens/MovieDetail';
-import Favorite from '../screens/Favorite';
+import React from 'react'
+import { View, Text, StyleSheet, Button } from 'react-native'
 
-const Stack = createNativeStackNavigator();
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  marginVertical20: {
+    marginVertical: 20,
+  },
+})
 
-export default function HomeStackNavigation(): JSX.Element {
+export default function HomeStackNavigation({ navigation }: { navigation: any }): JSX.Element {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="Home" component={Home} />
-      <Stack.Screen name="Favorite" component={Favorite} />
-      <Stack.Screen name="MovieDetail" component={MovieDetail} />
-    </Stack.Navigator>
-  );
+    <View style={styles.container}>
+      <Text>Movie Page</Text>
+      <Button
+        title="Pergi ke Movie Detail"
+        onPress={() => navigation.navigate('MovieDetail')}
+      />
+    </View>
+  )
 }
