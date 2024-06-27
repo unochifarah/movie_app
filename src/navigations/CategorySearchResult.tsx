@@ -33,18 +33,18 @@ const CategorySearchResult = ({ route }: { route: any }): JSX.Element => {
       });
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Network response was not ok: ${errorText}`);
+        throw new Error(`Bad Signal: ${errorText}`);
       }
       const data = await response.json();
       setSearchResults(data.results);
       setError('');
     } catch (error) {
       if (error instanceof Error) {
-        setError('Error fetching search results: ' + error.message);
-        console.error('Error fetching search results:', error.message);
+        setError('Failed fetching search results: ' + error.message);
+        console.error('Failed fetching search results:', error.message);
       } else {
-        setError('An unknown error occurred');
-        console.error('An unknown error occurred:', error);
+        setError('An unknown error has occurred');
+        console.error('An unknown error has occurred:', error);
       }
     } finally {
       setLoading(false);
