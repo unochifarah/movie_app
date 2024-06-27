@@ -87,7 +87,7 @@ const KeywordSearch = (): JSX.Element => {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Input movie title here"
+          placeholder="Insert title here"
           value={keyword}
           onChangeText={setKeyword}
           onSubmitEditing={handleSubmit}
