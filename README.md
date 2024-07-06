@@ -13,7 +13,6 @@ The Movie App allows users to discover and explore movies, view details, and sea
 - [Usage](#usage)
 - [API Integration](#api-integration)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## Features
 
@@ -77,10 +76,6 @@ We welcome contributions to the Movie App! To contribute:
 2. Create a new branch for your feature or bug fix.
 3. Make your changes and test thoroughly.
 4. Submit a pull request with a clear description of your changes.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
 ---
 
